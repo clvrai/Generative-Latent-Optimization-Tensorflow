@@ -37,7 +37,7 @@ class Dataset(object):
 
     def get_data(self, id):
         # preprocessing and data augmentation
-        m = self.data[id]['image'].value/255.
+        m = self.data[id]['image'].value/255. * 2 - 1
         l = self.data[id]['code'].value.astype(np.float32)
         return m, l
 
@@ -56,7 +56,7 @@ class Dataset(object):
 
 
 def get_data_info():
-    return np.array([28, 28, 10, 1])
+    return np.array([28, 28, 1, 100])
 
 
 def get_conv_info():
@@ -64,13 +64,13 @@ def get_conv_info():
 
 
 def get_deconv_info():
-    return np.array([[100, 2, 1], [25, 3, 2], [6, 4, 2], [1, 6, 2]])
+    return np.array([[100, 4, 2], [50, 4, 2], [25, 4, 2], [6, 4, 2], [1, 4, 2]])
 
 
 def create_default_splits(is_train=True):
     ids = all_ids()
 
-    num_trains = 60000
+    num_trains = 50000
 
     dataset_train = Dataset(ids[:num_trains], name='train', is_train=False)
     dataset_test = Dataset(ids[num_trains:], name='test', is_train=False)

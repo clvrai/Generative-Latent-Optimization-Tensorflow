@@ -59,7 +59,7 @@ def create_input_ops(dataset,
         input_ops['id'], input_ops['image'], input_ops['code'] = tf.py_func(
             load_fn, inp=[input_ops['id']],
             Tout=[tf.string, tf.float32, tf.float32],
-            name='func_hp'
+            name='func'
         )
 
         input_ops['id'].set_shape([])
