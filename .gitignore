@@ -6,3 +6,5 @@ datasets/
 *.hy
 *.txt
 *.gz
+*.png
+*.gif
