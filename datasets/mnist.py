@@ -70,7 +70,7 @@ def get_deconv_info():
 def create_default_splits(is_train=True):
     ids = all_ids()
 
-    num_trains = 50000
+    num_trains = 60000
 
     dataset_train = Dataset(ids[:num_trains], name='train', is_train=False)
     dataset_test = Dataset(ids[num_trains:], name='test', is_train=False)

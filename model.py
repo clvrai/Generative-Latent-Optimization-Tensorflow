@@ -77,27 +77,24 @@ class Model(object):
                 _ = tf.image.resize_images(
                     _, [int(self.image.get_shape()[1]), int(self.image.get_shape()[2])]
                 )
-
             return _
 
         # Input {{{
         # =========
-        x, z = self.image, self.code
+        self.x, self.z = self.image, self.code
         # }}}
 
         # Generator {{{
         # =========
-        x_recon = g(z)
-        self.targets = x
-        self.preds = x_recon
+        self.x_recon = g(self.z)
         # }}}
 
         # Build loss {{{
         # =========
-        self.loss = tf.reduce_mean(tf.abs(x - x_recon))
+        self.loss = tf.reduce_mean(tf.abs(self.x - self.x_recon))
         # }}}
 
         tf.summary.scalar("loss/loss", self.loss)
-        tf.summary.image("img/reconstructed", x_recon, max_outputs=4)
-        tf.summary.image("img/real", x, max_outputs=4)
+        tf.summary.image("img/reconstructed", self.x_recon, max_outputs=4)
+        tf.summary.image("img/real", self.x, max_outputs=4)
         print('\033[93mSuccessfully loaded the model.\033[0m')

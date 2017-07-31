@@ -10,7 +10,15 @@ import numpy as np
 parser = argparse.ArgumentParser(description='Download dataset for GLO.')
 parser.add_argument('--datasets', metavar='N', type=str, nargs='+', choices=['MNIST', 'SVHN', 'CIFAR10'])
 parser.add_argument('--dimension', type=int, default=100)
-parser.add_argument('--distribution', type=str, default='Uniform', choices=['Uniform', 'Gaussian'])
+parser.add_argument('--distribution', type=str, default='Uniform', choices=['Uniform', 'Gaussian', 'PCA'])
+
+
+def pca_feature(X, d):
+    X = X/255.
+    from sklearn.decomposition import PCA
+    X = np.reshape(X, (X.shape[0], np.prod(X.shape[1:])))
+    pca = PCA(n_components=d)
+    return pca.fit_transform(X)
 
 
 def prepare_h5py(train_image, test_image, data_dir, shape=None):
@@ -18,6 +26,10 @@ def prepare_h5py(train_image, test_image, data_dir, shape=None):
     image = np.concatenate((train_image, test_image), axis=0).astype(np.uint8)
 
     print('Preprocessing data...')
+
+    if args.distribution == 'PCA':
+        print('Performing PCA...')
+        Y = pca_feature(image, args.dimension)
 
     import progressbar
     bar = progressbar.ProgressBar(
@@ -45,6 +57,8 @@ def prepare_h5py(train_image, test_image, data_dir, shape=None):
             grp['code'] = np.random.random(args.dimension) * 2 - 1  # normal distribution
         elif args.distribution == 'Gaussian':
             grp['code'] = np.random.randn(args.dimension)  # normal distribution
+        elif args.distribution == 'PCA':
+            grp['code'] = Y[i, :]/np.linalg.norm(Y[i, :], 2)
 
     bar.finish()
     f.close()
@@ -54,7 +68,8 @@ def prepare_h5py(train_image, test_image, data_dir, shape=None):
 
 def check_file(data_dir):
     if osp.exists(data_dir):
-        if osp.isfile(osp.join('data.hy')) and osp.isfile(osp.join('id.txt')):
+        if osp.isfile(osp.join(data_dir, 'data.hdf5')) and \
+           osp.isfile(osp.join(data_dir, 'id.txt')):
             return True
     else:
         os.mkdir(data_dir)
