@@ -58,6 +58,28 @@ class Model(object):
         d_dim = self.d_dim
         self.num_res_block = 3
 
+        def local_moment_loss(pred, gt):
+            with tf.name_scope('local_moment_loss'):
+
+                ksz, kst = 4, 2
+                local_patch = tf.ones((ksz, ksz, 1, 1))
+
+                # Normalize by kernel size
+                pr_mean = tf.concat([tf.nn.conv2d(x, local_patch, strides=[1, kst, kst, 1], padding='VALID') for x in tf.split(pred, 3, axis=3)], axis=3)
+                pr_var = tf.concat([tf.nn.conv2d(tf.square(x), local_patch, strides=[1, kst, kst, 1], padding='VALID') for x in tf.split(pred, 3, axis=3)], axis=3)
+                pr_var = (pr_var - tf.square(pr_mean)/(ksz**2)) / (ksz ** 2)
+                pr_mean = pr_mean / (ksz ** 2)
+
+                gt_mean = tf.concat([tf.nn.conv2d(x, local_patch, strides=[1, kst, kst, 1], padding='VALID') for x in tf.split(gt, 3, axis=3)], axis=3)
+                gt_var = tf.concat([tf.nn.conv2d(tf.square(x), local_patch, strides=[1, kst, kst, 1], padding='VALID') for x in tf.split(gt, 3, axis=3)], axis=3)
+                gt_var = (gt_var - tf.square(gt_mean)/(ksz**2)) / (ksz ** 2)
+                gt_mean = gt_mean / (ksz ** 2)
+
+                # scaling by local patch size
+                local_mean_loss = tf.reduce_mean(tf.abs(pr_mean - gt_mean))
+                local_var_loss = tf.reduce_mean(tf.abs(pr_var - gt_var))
+            return local_mean_loss + local_var_loss
+
         # z -> x
         def g(z, scope='g'):
             with tf.variable_scope(scope) as scope:
@@ -82,16 +104,19 @@ class Model(object):
         # Input {{{
         # =========
         self.x, self.z = self.image, self.code
+        self.trainable_z = tf.Variable(tf.zeros_like(self.z), name='trainable_z')
+        self.trainable_z = tf.assign(self.trainable_z, self.z)
         # }}}
 
         # Generator {{{
         # =========
-        self.x_recon = g(self.z)
+        self.x_recon = g(self.trainable_z)
         # }}}
 
         # Build loss {{{
         # =========
-        self.loss = tf.reduce_mean(tf.abs(self.x - self.x_recon))
+        # self.loss = tf.reduce_mean(tf.abs(self.x - self.x_recon))
+        self.loss = local_moment_loss(self.x, self.x_recon)
         # }}}
 
         tf.summary.scalar("loss/loss", self.loss)

@@ -56,7 +56,7 @@ class Dataset(object):
 
 
 def get_data_info():
-    return np.array([28, 28, 1, 100])
+    return np.array([28, 28, 1, 10])
 
 
 def get_conv_info():

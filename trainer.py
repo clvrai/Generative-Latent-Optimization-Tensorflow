@@ -13,6 +13,7 @@ from input_ops import create_input_ops
 import os
 import time
 import tensorflow as tf
+import tensorflow.contrib.slim as slim
 
 
 class Trainer(object):
@@ -59,15 +60,38 @@ class Trainer(object):
 
         self.check_op = tf.no_op()
 
-        self.optimizer = tf.contrib.layers.optimize_loss(
+        # --- checkpoint and monitoring ---
+        all_vars = tf.trainable_variables()
+
+        g_var = [v for v in all_vars if v.name.startswith(('g'))]
+        log.warn("********* g_var ********** "); slim.model_analyzer.analyze_vars(g_var, print_info=True)
+
+        z_var = [v for v in all_vars if v.name.startswith(('trainable_z'))]
+        log.warn("********* z_var ********** "); slim.model_analyzer.analyze_vars(z_var, print_info=True)
+
+        remain_var = (set(all_vars) - set(g_var) - set(z_var))
+        print([v.name for v in remain_var]); assert not remain_var
+
+        self.g_optimizer = tf.contrib.layers.optimize_loss(
             loss=self.model.loss,
             global_step=self.global_step,
             learning_rate=self.learning_rate,
             optimizer=tf.train.AdamOptimizer,
             clip_gradients=20.0,
-            name='optimizer_loss'
+            name='optimizer_loss',
+            variables=g_var
         )
-
+        """
+        self.z_optimizer = tf.contrib.layers.optimize_loss(
+            loss=self.model.loss,
+            global_step=self.global_step,
+            learning_rate=self.learning_rate,
+            optimizer=tf.train.AdamOptimizer,
+            clip_gradients=20.0,
+            name='z_optimizer_loss',
+            variables=z_var
+        )
+        """
         self.summary_op = tf.summary.merge_all()
         try:
             import tfplot
@@ -137,7 +161,7 @@ class Trainer(object):
         batch_chunk = self.session.run(batch)
 
         fetch = [self.global_step, self.summary_op, self.model.loss,
-                 self.check_op, self.optimizer]
+                 self.check_op, self.g_optimizer]
 
         """
         try:

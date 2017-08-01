@@ -112,7 +112,7 @@ class Evaler(object):
         evaler = EvalManager()
         x = self.generator()
         img = self.image_grid(x)
-        imageio.imwrite('g.png', img)
+        imageio.imwrite('{}.png'.format(self.config.prefix), img)
 
         """
         try:
@@ -143,7 +143,7 @@ class Evaler(object):
         x_hat = self.session.run(self.model.x_recon, feed_dict={self.model.z: z})
         return x_hat
 
-    def image_grid(self, x, shape=[1024, 1024]):
+    def image_grid(self, x, shape=(2048, 2048)):
         n = int(np.sqrt(x.shape[0]))
         h, w, c = self.config.data_info[0], self.config.data_info[1], self.config.data_info[2]
         I = np.zeros((n*h, n*w, c))
@@ -152,14 +152,12 @@ class Evaler(object):
                 I[h * i:h * (i+1), w * j:w * (j+1), :] = x[i * n + j]
         if c == 1:
             I = I[:, :, 0]
-        return sm.imresize(I, (1024, 1024))
+        return sm.imresize(I, shape)
 
     def run_single_step(self, batch, step=None, is_train=True):
         _start_time = time.time()
 
         batch_chunk = self.session.run(batch)
-
-        import ipdb; ipdb.set_trace()
 
         [step, loss, all_targets, all_preds, _] = self.session.run(
             [self.global_step, self.model.loss, self.model.x, self.model.x_recon, self.step_op],

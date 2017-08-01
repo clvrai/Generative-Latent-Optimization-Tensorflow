@@ -64,7 +64,7 @@ class Dataset(object):
 
 
 def get_data_info():
-    return np.array([32, 32, 3, 100])
+    return np.array([32, 32, 3, 25])
 
 
 def get_conv_info():

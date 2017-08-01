@@ -64,7 +64,7 @@ class Dataset(object):
 
 
 def get_data_info():
-    return np.array([32, 32, 10, 3])
+    return np.array([32, 32, 3, 25])
 
 
 def get_conv_info():
@@ -72,7 +72,7 @@ def get_conv_info():
 
 
 def get_deconv_info():
-    return np.array([[384, 2, 1], [128, 4, 2], [64, 4, 2], [3, 6, 2]])
+    return np.array([[384, 4, 2], [128, 4, 2], [64, 4, 2], [16, 4, 2], [3, 4, 2]])
 
 
 def create_default_splits(is_train=True):
