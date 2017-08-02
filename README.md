@@ -133,6 +133,7 @@ $ python evaler.py --dataset YOUR_DATASET
 * The reconstruction loss
 
 <img src="figure/result/loss_mnist.png" height="200"/>
+
 ### CIFAR-10
 
 * The reconstruction loss
@@ -140,7 +141,12 @@ $ python evaler.py --dataset YOUR_DATASET
 <img src="figure/result/loss_cifar.png" height="200"/>
 
 ## Related works
+
+* [Generative Adversarial Networks](https://arxiv.org/abs/1406.2661)
+* [Unsupervised Learning by Predicting Noise] by Bojanowski and Joulin
+* [Compressed Sensing using Generative Models] by Bora et. al.
 * My implementation of [Semi-supervised learning GAN](https://github.com/gitlimlab/SSGAN-Tensorflow)
+* The architecture diagram is modified from the one drawn in [Unsupervised Representation Learning with Deep Convolutional Generative Adversarial Networks](https://arxiv.org/abs/1511.06434)
 
 ## Author
 
