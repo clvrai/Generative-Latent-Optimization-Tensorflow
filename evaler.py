@@ -35,7 +35,6 @@ class EvalManager(object):
         return np.sum(np.abs(pred - gt))/np.prod(pred.shape)
 
     def report(self):
-        # report l1 loss
         log.info("Computing scores...")
         total_loss = []
 
@@ -114,7 +113,6 @@ class Evaler(object):
         img = self.image_grid(x)
         imageio.imwrite('{}.png'.format(self.config.prefix), img)
 
-        """
         try:
             for s in xrange(max_steps):
                 step, loss, step_time, batch_chunk, prediction_pred, prediction_gt = \
@@ -125,15 +123,13 @@ class Evaler(object):
         except Exception as e:
             coord.request_stop(e)
 
-        """
         coord.request_stop()
         try:
             coord.join(threads, stop_grace_period_secs=3)
         except RuntimeError as e:
             log.warn(str(e))
-        """
+
         evaler.report()
-        """
         log.infov("Evaluation complete.")
 
     def generator(self):
