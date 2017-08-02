@@ -12,9 +12,9 @@ from input_ops import create_input_ops, check_data_id
 
 import tensorflow as tf
 import time
-import h5py
 import imageio
 import scipy.misc as sm
+
 
 class EvalManager(object):
 
@@ -47,7 +47,8 @@ class EvalManager(object):
 class Evaler(object):
     def __init__(self,
                  config,
-                 dataset):
+                 dataset,
+                 dataset_train):
         self.config = config
         self.train_dir = config.train_dir
         log.info("self.train_dir = %s", self.train_dir)
@@ -56,6 +57,7 @@ class Evaler(object):
         self.batch_size = config.batch_size
 
         self.dataset = dataset
+        self.dataset_train = dataset_train
 
         check_data_id(dataset, config.data_id)
         _, self.batch = create_input_ops(dataset, self.batch_size,
@@ -69,7 +71,7 @@ class Evaler(object):
         self.global_step = tf.contrib.framework.get_or_create_global_step(graph=None)
         self.step_op = tf.no_op(name='step_no_op')
 
-        tf.set_random_seed(1234)
+        tf.set_random_seed(123)
 
         session_config = tf.ConfigProto(
             allow_soft_placement=True,
@@ -96,32 +98,51 @@ class Evaler(object):
             self.saver.restore(self.session, self.checkpoint_path)
             log.info("Loaded from checkpoint!")
 
-        log.infov("Start 1-epoch Inference and Evaluation")
+        log.infov("Start Inference and Evaluation")
 
-        log.info("# of examples = %d", len(self.dataset))
+        log.info("# of testing examples = %d", len(self.dataset))
         length_dataset = len(self.dataset)
 
         max_steps = int(length_dataset / self.batch_size) + 1
-        log.info("max_steps = %d", max_steps)
 
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(self.session,
                                                coord=coord, start=True)
 
         evaler = EvalManager()
-        x = self.generator()
-        img = self.image_grid(x)
-        imageio.imwrite('{}.png'.format(self.config.prefix), img)
 
-        try:
-            for s in xrange(max_steps):
-                step, loss, step_time, batch_chunk, prediction_pred, prediction_gt = \
-                    self.run_single_step(self.batch)
-                self.log_step_message(s, loss, step_time)
-                evaler.add_batch(batch_chunk['id'], prediction_pred, prediction_gt)
+        if not (self.config.interpolate or self.config.generate or self.config.reconstruct):
+            raise ValueError('Please specify at least one task by indicating' +
+                             '--reconstruct, --generate, or --interpolate.')
+            return
 
-        except Exception as e:
-            coord.request_stop(e)
+        if self.config.reconstruct:
+            try:
+                for s in xrange(max_steps):
+                    step, loss, step_time, batch_chunk, prediction_pred, prediction_gt = \
+                        self.run_single_step(self.batch)
+                    self.log_step_message(s, loss, step_time)
+                    evaler.add_batch(batch_chunk['id'], prediction_pred, prediction_gt)
+
+            except Exception as e:
+                coord.request_stop(e)
+
+            evaler.report()
+            log.warning('Completed reconstruction.')
+
+        if self.config.generate:
+            x = self.generator(self.batch_size)
+            img = self.image_grid(x)
+            imageio.imwrite('generate_{}.png'.format(self.config.prefix), img)
+            log.warning('Completed generation. Generated samples are save' +
+                        'as generate_{}.png'.format(self.config.prefix))
+
+        if self.config.interpolate:
+            x = self.interpolator(self.dataset_train, self.batch_size)
+            img = self.image_grid(x)
+            imageio.imwrite('interpolate_{}.png'.format(self.config.prefix), img)
+            log.warning('Completed interpolation. Interpolated samples are save' +
+                        'as interpolate_{}.png'.format(self.config.prefix))
 
         coord.request_stop()
         try:
@@ -129,15 +150,33 @@ class Evaler(object):
         except RuntimeError as e:
             log.warn(str(e))
 
-        evaler.report()
-        log.infov("Evaluation complete.")
+        log.infov("Completed evaluation.")
 
-    def generator(self):
-        z = np.random.randn(self.batch_size, self.config.data_info[3])
+    def generator(self, num):
+        z = np.random.randn(num, self.config.data_info[3])
         row_sums = np.sqrt(np.sum(z ** 2, axis=0))
         z = z / row_sums[np.newaxis, :]
         x_hat = self.session.run(self.model.x_recon, feed_dict={self.model.z: z})
         return x_hat
+
+    def interpolator(self, dataset, bs, num=15):
+        transit_num = num - 2
+        img = []
+        for i in range(num):
+            idx = np.random.randint(len(dataset.ids)-1)
+            img1, z1 = dataset.get_data(dataset.ids[idx])
+            img2, z2 = dataset.get_data(dataset.ids[idx+1])
+            z = []
+            for j in range(transit_num):
+                z_int = (z2 - z1) * (j+1) / (transit_num+1) + z1
+                z.append(z_int / np.linalg.norm(z_int))
+            z = np.stack(z, axis=0)
+            z_aug = np.concatenate((z, np.zeros((bs-transit_num, z.shape[1]))), axis=0)
+            x_hat = self.session.run(self.model.x_recon, feed_dict={self.model.z: z_aug})
+            img.append(np.concatenate((np.expand_dims(img1, 0),
+                                       x_hat[:transit_num], np.expand_dims(img2, 0))))
+        return np.reshape(np.stack(img, axis=0), (num*(transit_num+2),
+                                                  img1.shape[0], img1.shape[1], img1.shape[2]))
 
     def image_grid(self, x, shape=(2048, 2048)):
         n = int(np.sqrt(x.shape[0]))
@@ -182,11 +221,14 @@ class Evaler(object):
 def main():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--batch_size', type=int, default=100)
+    parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument('--prefix', type=str, default='default')
     parser.add_argument('--checkpoint_path', type=str, default=None)
     parser.add_argument('--train_dir', type=str)
     parser.add_argument('--dataset', type=str, default='MNIST', choices=['MNIST', 'SVHN', 'CIFAR10'])
+    parser.add_argument('--reconstruct', action='store_true', default=False)
+    parser.add_argument('--generate', action='store_true', default=False)
+    parser.add_argument('--interpolate', action='store_true', default=False)
     parser.add_argument('--data_id', nargs='*', default=None)
     config = parser.parse_args()
 
@@ -206,7 +248,7 @@ def main():
     m, l = dataset_train.get_data(dataset_train.ids[0])
     config.data_info = np.concatenate([np.asarray(m.shape), np.asarray(l.shape)])
 
-    evaler = Evaler(config, dataset_test)
+    evaler = Evaler(config, dataset_test, dataset_train)
 
     log.warning("dataset: %s", config.dataset)
     evaler.eval_run()
