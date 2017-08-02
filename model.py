@@ -47,7 +47,6 @@ class Model(object):
             self.image: batch_chunk['image'],  # [B, h, w, c]
             self.code: batch_chunk['code'],  # [B, d]
         }
-        # if is_training is not None:
         fd[self.is_train] = is_training
 
         return fd
@@ -105,8 +104,6 @@ class Model(object):
         # Input {{{
         # =========
         self.x, self.z = self.image, self.code
-        # self.trainable_z = tf.Variable(tf.zeros_like(self.z), name='trainable_z')
-        # self.trainable_z = tf.assign(self.trainable_z, self.z)
         # }}}
 
         # Generator {{{

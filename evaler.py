@@ -203,10 +203,12 @@ def main():
     else:
         raise ValueError(config.dataset)
 
-    config.data_info = dataset.get_data_info()
     config.conv_info = dataset.get_conv_info()
     config.deconv_info = dataset.get_deconv_info()
     dataset_train, dataset_test = dataset.create_default_splits()
+
+    m, l = dataset_train.get_data(dataset_train.ids[0])
+    config.data_info = np.concatenate([np.asarray(m.shape), np.asarray(l.shape)])
 
     evaler = Evaler(config, dataset_test)
 

@@ -12,6 +12,7 @@ from input_ops import create_input_ops
 
 import os
 import time
+import h5py
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 import numpy as np
@@ -51,7 +52,7 @@ class Trainer(object):
         self.learning_rate = config.learning_rate
         if config.lr_weight_decay:
             self.learning_rate = tf.train.exponential_decay(
-                self.learning_rate,
+                config.learning_rate,
                 global_step=self.global_step,
                 decay_steps=10000,
                 decay_rate=0.5,
@@ -75,11 +76,6 @@ class Trainer(object):
         )
 
         self.summary_op = tf.summary.merge_all()
-        try:
-            import tfplot
-            self.plot_summary_op = tf.summary.merge_all(key='plot_summaries')
-        except:
-            pass
 
         self.saver = tf.train.Saver(max_to_keep=1000)
         self.summary_writer = tf.summary.FileWriter(self.train_dir)
@@ -114,17 +110,13 @@ class Trainer(object):
         log.infov("Training Starts!")
         pprint(self.batch_train)
 
-        max_steps = 200000
+        max_steps = 100000
 
         output_save_step = 1000
 
         for s in xrange(max_steps):
-            step, summary, loss, loss_g_update, loss_z_update, step_time = \
+            step, summary, x, loss, loss_g_update, loss_z_update, step_time = \
                 self.run_single_step(self.batch_train, dataset, step=s, is_train=True)
-
-            # periodic inference
-            loss_test = \
-                self.run_test(self.batch_test, is_train=False)
 
             if s % 10 == 0:
                 self.log_step_message(step, loss, loss_g_update, loss_z_update, step_time)
@@ -136,6 +128,10 @@ class Trainer(object):
                 save_path = self.saver.save(self.session,
                                             os.path.join(self.train_dir, 'model'),
                                             global_step=step)
+                if self.config.dump_result:
+                    f = h5py.File(os.path.join(self.train_dir, 'dump_result_'+str(s)+'.hdf5'), 'w')
+                    f['image'] = x
+                    f.close()
 
     def run_single_step(self, batch, dataset, step=None, is_train=True):
         _start_time = time.time()
@@ -145,26 +141,12 @@ class Trainer(object):
         # Optmize the generator {{{
         # ========
         fetch = [self.global_step, self.summary_op, self.model.loss,
-                 self.check_op, self.g_optimizer]
-
-        """
-        try:
-            if step is not None and (step % 100 == 0):
-                fetch += [self.plot_summary_op]
-        except:
-            pass
-        """
+                 self.model.x_recon, self.check_op, self.g_optimizer]
 
         fetch_values = self.session.run(
             fetch, feed_dict=self.model.get_feed_dict(batch_chunk, step=step)
         )
-        [step, summary, loss] = fetch_values[:3]
-
-        try:
-            if self.plot_summary_op in fetch:
-                summary += fetch_values[-1]
-        except:
-            pass
+        [step, summary, loss, x] = fetch_values[:4]
         # }}}
 
         # Optimize the latent vectors {{{
@@ -189,7 +171,7 @@ class Trainer(object):
 
         _end_time = time.time()
 
-        return step, summary, loss, loss_g_update, loss_z_update, (_end_time - _start_time)
+        return step, summary, x, loss, loss_g_update, loss_z_update, (_end_time - _start_time)
 
     def run_test(self, batch, is_train=False, repeat_times=8):
 
@@ -240,6 +222,7 @@ def main():
     parser.add_argument('--learning_rate', type=float, default=1e-4)
     parser.add_argument('--alpha', type=float, default=1.0)
     parser.add_argument('--lr_weight_decay', action='store_true', default=False)
+    parser.add_argument('--dump_result', action='store_true', default=False)
     config = parser.parse_args()
 
     if config.dataset == 'MNIST':

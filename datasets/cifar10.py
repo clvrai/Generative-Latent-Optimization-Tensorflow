@@ -37,7 +37,7 @@ class Dataset(object):
 
     def get_data(self, id):
         # preprocessing and data augmentation
-        m = self.data[id]['image'].value/255.
+        m = self.data[id]['image'].value/255.* 2 - 1
         try:
             l = self.data[id]['update'].value.astype(np.float32)
         except:
