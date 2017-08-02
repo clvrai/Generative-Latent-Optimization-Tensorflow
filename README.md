@@ -78,20 +78,6 @@ $ python evaler.py --dataset YOUR_DATASET
 ```
 ## Results
 
-### MNIST
-
-* Generated samples
-
-<img src="figure/result/training_mnist.png" height="250"/>
-
-* Sample interpolation
-
-<img src="figure/result/interpolate_mnist.png" height="250"/>
-
-* Reconstructed samples (first 192 epochs)
-
-<img src="figure/result/training_mnist.gif" height="250"/>
-
 ### SVHN
 
 * Generated samples
@@ -106,6 +92,19 @@ $ python evaler.py --dataset YOUR_DATASET
 
 <img src="figure/result/training_svhn.gif" height="250"/>
 
+### MNIST
+
+* Generated samples
+
+<img src="figure/result/training_mnist.png" height="250"/>
+
+* Sample interpolation
+
+<img src="figure/result/interpolate_mnist.png" height="250"/>
+
+* Reconstructed samples (first 192 epochs)
+
+<img src="figure/result/training_mnist.gif" height="250"/>
 
 ### CIFAR-10
 
@@ -123,18 +122,17 @@ $ python evaler.py --dataset YOUR_DATASET
 
 ## Training details
 
-### MNIST
-
-* The reconstruction loss
-
-<img src="figure/result/loss_result.png" height="200"/>
-
 ### SVHN
 
 * The reconstruction loss
 
 <img src="figure/result/loss_svhn.png" height="200"/>
 
+### MNIST
+
+* The reconstruction loss
+
+<img src="figure/result/loss_mnist.png" height="200"/>
 ### CIFAR-10
 
 * The reconstruction loss
