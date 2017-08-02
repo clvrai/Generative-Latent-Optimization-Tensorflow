@@ -142,9 +142,9 @@ $ python evaler.py --dataset YOUR_DATASET
 
 ## Related works
 
-* [Generative Adversarial Networks](https://arxiv.org/abs/1406.2661)
-* [Unsupervised Learning by Predicting Noise] by Bojanowski and Joulin
-* [Compressed Sensing using Generative Models] by Bora et. al.
+* [Generative Adversarial Networks](https://arxiv.org/abs/1406.2661) by Goodfellow et. al
+* [Unsupervised Learning by Predicting Noise](https://arxiv.org/abs/1704.05310) by Bojanowski and Joulin
+* [Compressed Sensing using Generative Models](https://arxiv.org/abs/1703.03208) by Bora et. al.
 * My implementation of [Semi-supervised learning GAN](https://github.com/gitlimlab/SSGAN-Tensorflow)
 * The architecture diagram is modified from the one drawn in [Unsupervised Representation Learning with Deep Convolutional Generative Adversarial Networks](https://arxiv.org/abs/1511.06434)
 
