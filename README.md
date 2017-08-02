@@ -80,43 +80,55 @@ $ python evaler.py --dataset YOUR_DATASET
 
 ### SVHN
 
+* Reconstructed samples
+
+<img src="figure/result/reconstruct_svhn.png" height="250"/>
+
 * Generated samples
 
-<img src="figure/result/training_svhn.png" height="250"/>
+<img src="figure/result/generate_svhn.png" height="250"/>
 
 * Sample interpolation
 
 <img src="figure/result/interpolate_svhn.png" height="250"/>
 
-* Reconstructed samples (first 73 epochs)
+* Reconstructed process (first 73 epochs)
 
 <img src="figure/result/training_svhn.gif" height="250"/>
 
 ### MNIST
 
+* Reconstructed samples
+
+<img src="figure/result/reconstruct_mnist.png" height="250"/>
+
 * Generated samples
 
-<img src="figure/result/training_mnist.png" height="250"/>
+<img src="figure/result/generate_mnist.png" height="250"/>
 
 * Sample interpolation
 
 <img src="figure/result/interpolate_mnist.png" height="250"/>
 
-* Reconstructed samples (first 192 epochs)
+* Reconstructed process (first 192 epochs)
 
 <img src="figure/result/training_mnist.gif" height="250"/>
 
 ### CIFAR-10
 
+* Reconstructed samples
+
+<img src="figure/result/reconstruct_cifar.png" height="250"/>
+
 * Generated samples
 
-<img src="figure/result/training_cifar.png" height="250"/>
+<img src="figure/result/generate_cifar.png" height="250"/>
 
 * Sample interpolation
 
 <img src="figure/result/interpolate_cifar.png" height="250"/>
 
-* Reconstructed samples (first 192 epochs)
+* Reconstructed process (first 192 epochs)
 
 <img src="figure/result/training_cifar.gif" height="250"/>
 
