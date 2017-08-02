@@ -30,16 +30,26 @@ class Dataset(object):
         log.info("Reading %s ...", file)
 
         try:
-            self.data = h5py.File(file, 'r')
+            self.data = h5py.File(file, 'r+')
         except:
             raise IOError('Dataset not found. Please make sure the dataset was downloaded.')
         log.info("Reading Done: %s", file)
 
     def get_data(self, id):
         # preprocessing and data augmentation
-        m = self.data[id]['image'].value/255. * 2 - 1
-        l = self.data[id]['code'].value.astype(np.float32)
+        m = self.data[id]['image'].value/255.
+        try:
+            l = self.data[id]['update'].value.astype(np.float32)
+        except:
+            l = self.data[id]['code'].value.astype(np.float32)
         return m, l
+
+    def set_data(self, id, z):
+        try:
+            self.data[id]['update'] = z
+        except:
+            np.allclose(self.data[id]['update'].value, z)
+        return
 
     @property
     def ids(self):
@@ -53,10 +63,6 @@ class Dataset(object):
             self.name,
             len(self)
         )
-
-
-def get_data_info():
-    return np.array([28, 28, 1, 10])
 
 
 def get_conv_info():

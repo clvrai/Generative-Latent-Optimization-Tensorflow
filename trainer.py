@@ -14,13 +14,14 @@ import os
 import time
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
+import numpy as np
 
 
 class Trainer(object):
 
     def __init__(self,
                  config,
-                 dataset,
+                 dataset_train,
                  dataset_test):
         self.config = config
         hyper_parameter_str = config.dataset+'_lr_'+str(config.learning_rate)
@@ -37,7 +38,7 @@ class Trainer(object):
         # --- input ops ---
         self.batch_size = config.batch_size
 
-        _, self.batch_train = create_input_ops(dataset, self.batch_size,
+        _, self.batch_train = create_input_ops(dataset_train, self.batch_size,
                                                is_training=True)
         _, self.batch_test = create_input_ops(dataset_test, self.batch_size,
                                               is_training=False)
@@ -61,16 +62,8 @@ class Trainer(object):
         self.check_op = tf.no_op()
 
         # --- checkpoint and monitoring ---
-        all_vars = tf.trainable_variables()
-
-        g_var = [v for v in all_vars if v.name.startswith(('g'))]
-        log.warn("********* g_var ********** "); slim.model_analyzer.analyze_vars(g_var, print_info=True)
-
-        z_var = [v for v in all_vars if v.name.startswith(('trainable_z'))]
-        log.warn("********* z_var ********** "); slim.model_analyzer.analyze_vars(z_var, print_info=True)
-
-        remain_var = (set(all_vars) - set(g_var) - set(z_var))
-        print([v.name for v in remain_var]); assert not remain_var
+        log.warn("********* var ********** ")
+        slim.model_analyzer.analyze_vars(tf.trainable_variables(), print_info=True)
 
         self.g_optimizer = tf.contrib.layers.optimize_loss(
             loss=self.model.loss,
@@ -78,20 +71,9 @@ class Trainer(object):
             learning_rate=self.learning_rate,
             optimizer=tf.train.AdamOptimizer,
             clip_gradients=20.0,
-            name='optimizer_loss',
-            variables=g_var
+            name='g_optimizer_loss',
         )
-        """
-        self.z_optimizer = tf.contrib.layers.optimize_loss(
-            loss=self.model.loss,
-            global_step=self.global_step,
-            learning_rate=self.learning_rate,
-            optimizer=tf.train.AdamOptimizer,
-            clip_gradients=20.0,
-            name='z_optimizer_loss',
-            variables=z_var
-        )
-        """
+
         self.summary_op = tf.summary.merge_all()
         try:
             import tfplot
@@ -128,7 +110,7 @@ class Trainer(object):
             self.saver.restore(self.session, self.ckpt_path)
             log.info("Loaded the pretrain parameters from the provided checkpoint path")
 
-    def train(self):
+    def train(self, dataset):
         log.infov("Training Starts!")
         pprint(self.batch_train)
 
@@ -137,15 +119,15 @@ class Trainer(object):
         output_save_step = 1000
 
         for s in xrange(max_steps):
-            step, summary, loss, step_time = \
-                self.run_single_step(self.batch_train, step=s, is_train=True)
+            step, summary, loss, loss_g_update, loss_z_update, step_time = \
+                self.run_single_step(self.batch_train, dataset, step=s, is_train=True)
 
             # periodic inference
             loss_test = \
                 self.run_test(self.batch_test, is_train=False)
 
             if s % 10 == 0:
-                self.log_step_message(step, loss, loss_test, step_time)
+                self.log_step_message(step, loss, loss_g_update, loss_z_update, step_time)
 
             self.summary_writer.add_summary(summary, global_step=step)
 
@@ -155,11 +137,13 @@ class Trainer(object):
                                             os.path.join(self.train_dir, 'model'),
                                             global_step=step)
 
-    def run_single_step(self, batch, step=None, is_train=True):
+    def run_single_step(self, batch, dataset, step=None, is_train=True):
         _start_time = time.time()
 
         batch_chunk = self.session.run(batch)
 
+        # Optmize the generator {{{
+        # ========
         fetch = [self.global_step, self.summary_op, self.model.loss,
                  self.check_op, self.g_optimizer]
 
@@ -181,10 +165,31 @@ class Trainer(object):
                 summary += fetch_values[-1]
         except:
             pass
+        # }}}
+
+        # Optimize the latent vectors {{{
+        fetch = [self.model.z, self.model.z_grad, self.model.loss]
+
+        fetch_values = self.session.run(
+            fetch, feed_dict=self.model.get_feed_dict(batch_chunk, step=step)
+        )
+
+        [z, z_grad, loss_g_update] = fetch_values
+
+        z_update = z - self.config.alpha * z_grad[0]
+        norm = np.sqrt(np.sum(z_update ** 2, axis=1))
+        z_update_norm = z_update / norm[:, np.newaxis]
+
+        loss_z_update = self.session.run(
+            self.model.loss, feed_dict={self.model.x: batch_chunk['image'], self.model.z: z_update_norm}
+        )
+        for i in range(len(batch_chunk['id'])):
+            dataset.set_data(batch_chunk['id'][i], z_update_norm[i, :])
+        # }}}
 
         _end_time = time.time()
 
-        return step, summary, loss,  (_end_time - _start_time)
+        return step, summary, loss, loss_g_update, loss_z_update, (_end_time - _start_time)
 
     def run_test(self, batch, is_train=False, repeat_times=8):
 
@@ -196,16 +201,21 @@ class Trainer(object):
 
         return loss
 
-    def log_step_message(self, step, loss, step_time, is_train=True):
+    def log_step_message(self, step, loss, loss_g_update,
+                         loss_z_update, step_time, is_train=True):
         if step_time == 0:
             step_time = 0.001
         log_fn = (is_train and log.info or log.infov)
         log_fn((" [{split_mode:5s} step {step:4d}] " +
                 "Loss: {loss:.5f} " +
+                "G update: {loss_g_update:.5f} " +
+                "Z update: {loss_z_update:.5f} " +
                 "({sec_per_batch:.3f} sec/batch, {instance_per_sec:.3f} instances/sec) "
                 ).format(split_mode=(is_train and 'train' or 'val'),
                          step=step,
                          loss=loss,
+                         loss_z_update=loss_z_update,
+                         loss_g_update=loss_g_update,
                          sec_per_batch=step_time,
                          instance_per_sec=self.batch_size / step_time
                          )
@@ -228,11 +238,12 @@ def main():
     parser.add_argument('--checkpoint', type=str, default=None)
     parser.add_argument('--dataset', type=str, default='MNIST', choices=['MNIST', 'SVHN', 'CIFAR10'])
     parser.add_argument('--learning_rate', type=float, default=1e-4)
+    parser.add_argument('--alpha', type=float, default=1.0)
     parser.add_argument('--lr_weight_decay', action='store_true', default=False)
     config = parser.parse_args()
 
     if config.dataset == 'MNIST':
-        import  datasets.mnist as dataset
+        import datasets.mnist as dataset
     elif config.dataset == 'SVHN':
         import datasets.svhn as dataset
     elif config.dataset == 'CIFAR10':
@@ -240,17 +251,19 @@ def main():
     else:
         raise ValueError(config.dataset)
 
-    config.data_info = dataset.get_data_info()
     config.conv_info = dataset.get_conv_info()
     config.deconv_info = dataset.get_deconv_info()
     dataset_train, dataset_test = dataset.create_default_splits()
+
+    m, l = dataset_train.get_data(dataset_train.ids[0])
+    config.data_info = np.concatenate([np.asarray(m.shape), np.asarray(l.shape)])
 
     trainer = Trainer(config,
                       dataset_train, dataset_test)
 
     log.warning("dataset: %s, learning_rate: %f",
                 config.dataset, config.learning_rate)
-    trainer.train()
+    trainer.train(dataset_train)
 
 if __name__ == '__main__':
     main()

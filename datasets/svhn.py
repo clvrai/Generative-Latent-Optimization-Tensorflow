@@ -30,7 +30,7 @@ class Dataset(object):
         log.info("Reading %s ...", file)
 
         try:
-            self.data = h5py.File(file, 'r')
+            self.data = h5py.File(file, 'r+')
         except:
             raise IOError('Dataset not found. Please make sure the dataset was downloaded.')
         log.info("Reading Done: %s", file)
@@ -38,16 +38,18 @@ class Dataset(object):
     def get_data(self, id):
         # preprocessing and data augmentation
         m = self.data[id]['image'].value/255.
-        l = self.data[id]['code'].value.astype(np.float32)
-
-        # Data augmentation: rotate 0, 90, 180, 270
-        """
-        rot_num = np.floor(np.random.rand(1)*4)
-        for i in range(rot_num):
-            m = np.rot90(m, axes=(0, 1))
-        m = m + np.random.randn(*m.shape) * 1e-2
-        """
+        try:
+            l = self.data[id]['update'].value.astype(np.float32)
+        except:
+            l = self.data[id]['code'].value.astype(np.float32)
         return m, l
+
+    def set_data(self, id, z):
+        try:
+            self.data[id]['update'] = z
+        except:
+            np.allclose(self.data[id]['update'].value, z)
+        return
 
     @property
     def ids(self):
@@ -61,10 +63,6 @@ class Dataset(object):
             self.name,
             len(self)
         )
-
-
-def get_data_info():
-    return np.array([32, 32, 3, 25])
 
 
 def get_conv_info():
