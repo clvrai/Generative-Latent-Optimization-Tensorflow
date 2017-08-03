@@ -2,10 +2,10 @@
 
 As part of the implementation series of [Joseph Lim's group at USC](http://csail.mit.edu/~lim), our motivation is to accelerate (or sometimes delay) research in the AI community by promoting open-source projects. To this end, we implement state-of-the-art research papers, and publicly share them with concise reports. Please visit our [group github site](https://github.com/gitlimlab) for other projects.
 
-This project is implemented by [Shao-Hua Sun](http://shaohua0116.github.io) and the codes have been reviewed by <!--- --> before being published.
+This project is implemented by [Shao-Hua Sun](http://shaohua0116.github.io) and the codes have been reviewed by [Jiayuan Mao](https://github.com/vacancy) before being published.
 
 ## Descriptions
-This project is a [Tensorflow](https://www.tensorflow.org/) implementation of **Generative Latent Optimization (GLO)** proposed in the paper [Optimizing the Latent Space of Generative Networks](https://arxiv.org/abs/1707.05776). GLO is an exciting new generative model framework which enjoys many of the desirable properties of GANs including modeling data distributions, generating realistic samples, interpretable latent space, but more importantly, it doesn't suffer from unstable adversarial training dynamics.
+This project is a [Tensorflow](https://www.tensorflow.org/) implementation of **Generative Latent Optimization (GLO)** proposed in the paper [Optimizing the Latent Space of Generative Networks](https://arxiv.org/abs/1707.05776). GLO is an exciting new generative model which enjoys many of the desirable properties of GANs including modeling data distributions, generating realistic samples, interpretable latent space, but more importantly, it doesn't suffer from unstable adversarial training dynamics.
 
 GLO learns to map learnable latent vectors to samples in a target dataset by minimizing a reconstruction loss. During the traning phase, optimizaing the parameters of the generator and tuning the corresponding latent vectors are alternatively performed. When convergedthe model is able to generate novel samples given latent vectors sampled from the distribution. The illustratino of the GLO framework is as follows.
 
