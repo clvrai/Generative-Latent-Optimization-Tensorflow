@@ -7,7 +7,7 @@ This project is implemented by [Shao-Hua Sun](http://shaohua0116.github.io) and 
 ## Descriptions
 This project is a [Tensorflow](https://www.tensorflow.org/) implementation of **Generative Latent Optimization (GLO)** proposed in the paper [Optimizing the Latent Space of Generative Networks](https://arxiv.org/abs/1707.05776). GLO is an exciting new generative model which enjoys many of the desirable properties of GANs including modeling data distributions, generating realistic samples, interpretable latent space, but more importantly, it doesn't suffer from unstable adversarial training dynamics.
 
-GLO learns to map learnable latent vectors to samples in a target dataset by minimizing a reconstruction loss. During the traning phase, optimizaing the parameters of the generator and tuning the corresponding latent vectors are alternatively performed. When convergedthe model is able to generate novel samples given latent vectors sampled from the distribution. The illustratino of the GLO framework is as follows.
+GLO learns to map learnable latent vectors to samples in a target dataset by minimizing a reconstruction loss. During the traning phase, optimizing the parameters of the generator and tuning the corresponding latent vectors are alternatively performed. When converged, the model is able to generate novel samples given latent vectors sampled from the distribution. The illustration of the GLO framework is as follows.
 
 <img src="figure/glo.png" height="300"/>
 
@@ -34,9 +34,9 @@ Note that this implementation only follows the main idea of the original paper w
 ### Datasets
 Download datasets with specified settings. For examples:
 ```bash
-$ python download.py --dataset MNIST --distribution PCA --dimension 10
-$ python download.py --dataset SVHN --distribution Uniform --dimension 25
-$ python download.py --dataset CIFAR --distribution Gaussian --dimension 35
+$ python download.py --datasets MNIST --distribution PCA --dimension 10
+$ python download.py --datasets SVHN --distribution Uniform --dimension 25
+$ python download.py --datasets CIFAR --distribution Gaussian --dimension 35
 ```
 Note that `distribution` indicates the initial distribution of the latent space and `dimension` specifies the dimension of each latent vector.
 
