@@ -28,6 +28,7 @@ Note that this implementation only follows the main idea of the original paper w
 - [h5py](http://docs.h5py.org/en/latest/)
 - [progressbar](http://progressbar-2.readthedocs.io/en/latest/index.html)
 - [colorlog](https://github.com/borntyping/python-colorlog)
+- [imageio](https://imageio.github.io/)
 
 ## Usage
 
@@ -36,7 +37,7 @@ Download datasets with specified settings. For examples:
 ```bash
 $ python download.py --datasets MNIST --distribution PCA --dimension 10
 $ python download.py --datasets SVHN --distribution Uniform --dimension 25
-$ python download.py --datasets CIFAR --distribution Gaussian --dimension 35
+$ python download.py --datasets CIFAR10 --distribution Gaussian --dimension 35
 ```
 Note that `distribution` indicates the initial distribution of the latent space and `dimension` specifies the dimension of each latent vector.
 
